@@ -1,5 +1,5 @@
 """Entry point for ETL project"""
-from etl.common import log
+from common import log
 import time
 
 from pathlib import Path

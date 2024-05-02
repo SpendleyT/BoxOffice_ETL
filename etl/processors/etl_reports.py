@@ -1,7 +1,7 @@
 """Classes for report options"""
 import logging
-from etl.common.s3 import s3BucketConnector
-from etl.common.constants import S3BucketConfigs
+from common.s3 import s3BucketConnector
+from common.constants import S3BucketConfigs
 import time
 import os
 from boxoffice_api import BoxOffice
@@ -53,7 +53,7 @@ class BoxOfficeETL():
         Pull unprocessed data files and write to database
         """
         #get files currently in data_files bucket and process
-        files_to_transform = self.bucket_conn.list_files_in_prefix('data_files')
+        files_to_transform = self.bucket_conn.list_files_in_prefix('data_files/')
         full_df = pd.DataFrame()
         for csv_file in files_to_transform:
             movie_df = self.bucket_conn.read_csv_to_df(csv_file)

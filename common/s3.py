@@ -4,14 +4,14 @@ import boto3
 import logging
 import pandas as pd
 from io import StringIO, BytesIO
-from etl.common.constants import S3BucketConfigs
+from common.constants import S3BucketConfigs
 
 logger = logging.getLogger(__name__)
 
 class s3BucketConnector():
     """Class for interacting with s3 Buckets"""
 
-    def __init__(self, bucket: str, endpoint_url=''):
+    def __init__(self, bucket: str, access_key='', secret_key='', endpoint_url=''):
         """
         Constructor for s3BucketConnector
 
@@ -19,14 +19,17 @@ class s3BucketConnector():
         :bucket target bucket name
         """
         self.endpoint_url = endpoint_url
+        self.access_key = S3BucketConfigs.ETL_ACCESS_KEY_NAME.value if access_key == '' else access_key
+        self.secret_key = S3BucketConfigs.ETL_SECRET_KEY_NAME.value if secret_key == '' else secret_key
         self.session = boto3.Session(
-            aws_access_key_id=os.environ[S3BucketConfigs.ETL_ACCESS_KEY_NAME.value],
-            aws_secret_access_key=os.environ[S3BucketConfigs.ETL_SECRET_KEY_NAME.value]
+            aws_access_key_id=os.environ[self.access_key],
+            aws_secret_access_key=os.environ[self.secret_key]
         )
         if not endpoint_url:
             self._s3 = self.session.resource(service_name='s3')
         else:
             self._s3 = self.session.resource(service_name='s3', endpoint_url=endpoint_url)
+        self._bucket_name = bucket
         self._bucket = self._s3.Bucket(bucket)
         self._client = self.session.client('s3')
 
@@ -44,7 +47,7 @@ class s3BucketConnector():
             obj.key for obj 
             in self._bucket.objects.filter(Prefix=prefix) 
         ]
-        return files[1:]
+        return files
 
 
     def read_csv_to_df(self, key: str, decoding='utf-8', sep=','):
@@ -83,7 +86,8 @@ class s3BucketConnector():
 
     def move_files_to_archive(self, file_list):
         for file in file_list:
-            copy_source = {'Bucket': S3BucketConfigs.ETL_BUCKET.value, 'Key': file}
-            self._client.copy(copy_source, S3BucketConfigs.ETL_BUCKET.value, f'archive/{file}')
+            copy_source = {'Bucket': self._bucket_name, 'Key': file}
+            filename = file.split("/")[1]
+            self._client.copy(copy_source, self._bucket_name, f'archive/{filename}')
 
 

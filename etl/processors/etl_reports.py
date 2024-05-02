@@ -24,6 +24,12 @@ class BoxOfficeETL():
 
 
     def run_extract(self, year: int) -> None:
+        """
+        Leverages BoxOffice-API to scrape box office data by week (all 52) for the
+        year provided, and load's as csv files to s3.
+
+        :param year: box office year to be retrieved
+        """
         #create box office instance
         box_office = BoxOffice(api_key=os.environ[S3BucketConfigs.ETL_OMDB_KEY_NAME.value], outputformat="DF");
         logger.info(f"Processing year: {year}")
@@ -76,6 +82,13 @@ class BoxOfficeETL():
 
 
     def run_load(self, df) -> None:
+        """
+        Gets stored movie data and adds the current year's data, then 
+        writes the new set back to s3 as .parquet file.
+
+        :params df: dataframe of movie data to be added to storage
+        """
+        logger.info(f"Number of records loading: {df.shape[0]}")
         stored_df = self.bucket_conn.read_prq_to_df("database/movies.parquet")
         stored_df = pd.concat([stored_df, df], ignore_index=True)
         stored_df = stored_df.sort_values(by=['Release', 'Weeks'], ascending=False, ignore_index=True)
@@ -83,6 +96,11 @@ class BoxOfficeETL():
         
 
     def run(self, year: int) -> None:
+        """
+        Main ETL process that manages each subtask.
+
+        :params year: year to be scraped (from commandline args)
+        """
         BoxOfficeETL.run_extract(self, year)
         full_df = BoxOfficeETL.run_transform(self)
         BoxOfficeETL.run_load(self, full_df)

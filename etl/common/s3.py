@@ -59,6 +59,7 @@ class s3BucketConnector():
             prq_obj = self._bucket.Object(key=key).get().get('Body').read()
             data = BytesIO(prq_obj)
             df = pd.read_parquet(data)
+            logger.info(f"Current total record count: {df.shape[0]}")
         except: 
             logger.info("No parquet file exists. Creating new dataframe.")
             df = pd.DataFrame()

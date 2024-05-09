@@ -51,43 +51,43 @@ class s3BucketConnector():
 
 
     def read_csv_to_df(self, key: str, decoding='utf-8', sep=','):
+        """ 
+        Retrieve csv file from s3 and return it as a dataframe
+
+        :param key: file key on s3 bucket for match
+
+        return: 
+            df: dataframe of csv file data
+        """
         csv_obj = self._bucket.Object(key=key).get().get('Body').read().decode(decoding)
         data = StringIO(csv_obj)
         df = pd.read_csv(data, delimiter=sep)
         return df
 
 
-    def read_prq_to_df(self, key):
-        try:
-            prq_obj = self._bucket.Object(key=key).get().get('Body').read()
-            data = BytesIO(prq_obj)
-            df = pd.read_parquet(data)
-            logger.info(f"Current total record count: {df.shape[0]}")
-        except: 
-            logger.info("No parquet file exists. Creating new dataframe.")
-            df = pd.DataFrame()
-        
-        return df
-
-
     def write_df_as_csv_to_s3(self, df, key):
+        """ 
+        Converting dataframe to a csv file and storing on S3
+        
+        :param df: dataframe containing records to store
+        :param key: prefix and file name for csv file
+        """
         out_buffer = StringIO()
         df.to_csv(out_buffer, index=False)
         self._bucket.put_object(Body=out_buffer.getvalue(), Key=key)
         return True
 
 
-    def write_df_as_prq_to_s3(self, df, key):
-        out_buffer = BytesIO()
-        df.to_parquet(out_buffer, index=False)
-        self._bucket.put_object(Body=out_buffer.getvalue(), Key=key)
-        return True
-
-
     def move_files_to_archive(self, file_list):
+        """ 
+        Moves files from data_files folder to archive folder.
+        
+        :param file_list: list of files processed to be moved
+        """
         for file in file_list:
             copy_source = {'Bucket': self._bucket_name, 'Key': file}
             filename = file.split("/")[1]
             self._client.copy(copy_source, self._bucket_name, f'archive/{filename}')
+        return True
 
 

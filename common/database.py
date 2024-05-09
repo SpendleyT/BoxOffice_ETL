@@ -16,6 +16,7 @@ DB_PASSWORD = os.environ['DB_PASSWORD_KEY']
 
 
 class DatabaseConnection:
+    """ Class to manage database transactions"""
     def __init__(self):
         self._engine = create_engine(
             f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_ADDRESS}/{DB_NAME}b",
@@ -24,18 +25,20 @@ class DatabaseConnection:
         self._session = Session(self._engine)
 
 
-    @property
-    def connection(self):
-        return self._conn
-
-
     def close(self):
+        """ Ends connections with the database"""
         self._session.close_all()
         self._engine.dispose()
         return True
 
 
     def add_box_office_entry(self, week_info: Series, movie_id: int):
+        """
+        Adds a new row to the box_office table for a specific movie/week combination.
+
+        :params week_info: box office data to be stored
+        :params movie_id: foreign key for the previously stored movie
+        """
         new_box_office = BoxOffice(
             movie_id=movie_id,
             bo_year=int(week_info['Reference'].split('-')[0]),
@@ -54,6 +57,12 @@ class DatabaseConnection:
 
 
     def add_movie(self, movie_info: Series, dist_id: int):
+        """
+        Adds a new movie record.
+
+        :params movie_info: row data to get the movie dimension data
+        :params dist_id: foreign key for the distributor listed
+        """
         new_movie = Movie(
             distributor_id=dist_id,
             title=movie_info['Release'],
@@ -75,6 +84,11 @@ class DatabaseConnection:
 
 
     def add_distributor(self, distributor: str) -> int:
+        """ 
+        Stores distributor info for reference
+        
+        :params distributor: name of the distributor that is to be stored
+        """
         new_distributor = Distributor(distributor_name=distributor)
         self._session.add(new_distributor)
         self._session.flush()
@@ -84,6 +98,13 @@ class DatabaseConnection:
 
 
     def get_movie_id_by_name(self, title: str):
+        """ 
+        Retrieves the movie id for reference.
+
+        :params title: movie title for retrieval of existing record id
+
+        :returns movie_id: if exists, 0 if not
+        """
         stmt = select(Movie).where(Movie.title == title)
         result = self._session.execute(stmt).fetchone()
         print(f"mov-by-nm result = {result}")
@@ -91,6 +112,11 @@ class DatabaseConnection:
 
 
     def get_distributor_id_by_name(self, name: str):
+        """
+        :params name: distributor name for retrieval of existing record id
+
+        :returns distributor_id: if exists, 0 if not
+        """
         stmt = select(Distributor).where(Distributor.distributor_name == name)
         result = self._session.execute(stmt).fetchone()
         print(f"dist-by-nm result = {result}")
@@ -99,12 +125,14 @@ class DatabaseConnection:
 
 
 class Distributor(Base):
+    """ ORM class for the distributor info"""
     __tablename__ = "distributor"
     distributor_id = Column(Integer, primary_key=True)
     distributor_name = Column(String)
 
 
 class Movie(Base):
+    """ ORM class for the movie info """
     __tablename__ = "movie"
     movie_id = Column(Integer, primary_key=True)
     distributor_id = Column(
@@ -124,6 +152,7 @@ class Movie(Base):
 
 
 class BoxOffice(Base):
+    """ ORM class for box office info """
     __tablename__  = 'box_office'
     box_office_id = Column(Integer, primary_key=True)
     movie_id = Column(Integer, ForeignKey('movie.movie_id', ondelete='CASCADE'))

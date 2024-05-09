@@ -9,7 +9,7 @@ from boxoffice_api import BoxOffice
 import pandas as pd
 from pandas import DataFrame
 
-
+#Create logging object
 logger = logging.getLogger(__name__)
 
 

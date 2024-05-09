@@ -13,15 +13,20 @@
 <h3 style="text-decoration:underline;">The ETL Process</h3>
 <h4>Extract</h4>
 <p>The extraction process receives the target year to be scraped as passed via program arguments (via ArgumentParser). For each week of the year, a call to the Box Office API is made. The resultant dataframe (pandas) is written out an AWS S3 bucket as a comma-separated file.</p>
-<img src="./images/extract.png">
+<img src="./images/extract.png" style="height: 300px; width: 400px;">
 
 <h4>Transform</h4>
-<p>The transform phase has 2 main goals: trimming the box office data in each of the csv files created during the extract phase down to the top 15 ranked films per week, and then to clean that resultant data into a form that can be stored during the load phase. The transform contains common cleaning patterns including: dropping unnecessary entries, changing data types for consistency, and stripping/splitting composite fields into individual dimension. The resultant dataframe is then passed to the load phase for storage.</p>
-<img src="./images/transform.png">
+<p>The transform phase has 2 main goals: </p>
+<ul>
+<li>Trimming the box office data in each of the csv files created during the extract phase down to the top 15 ranked films per week</li>
+<li>Cleaning that resultant data into a form that can be stored during the load phase.</li>
+</ul>
+<p>The transform contains common cleaning patterns including: dropping unnecessary entries, changing data types for consistency, and stripping/splitting composite fields into individual dimension. The resultant dataframe is then passed to the load phase for storage.</p>
+<img src="./images/transform.png" style="height: 300px; width: 400px;">
 
 <h4>Load</h4>
 <p>The load phase takes the supplied dataframe, and writes the box office data the the database. PostgreSQL was utilized, the table structure reflects one fact (box office info), and two supporting dimensions (movie and distributor).</p>
-<img src="./images/load.png">
+<img src="./images/load.png" style="height: 300px; width: 400px;">
 
 
 

@@ -26,7 +26,7 @@
 
 <h4>Load</h4>
 <p>The load phase takes the supplied dataframe, and writes the box office data the the database. PostgreSQL was utilized, the table structure reflects one fact (box office info), and two supporting dimensions (movie and distributor).</p>
-<img src="./images/load.png" style="height: 250px; width: 500px;">
+<img src="./images/load.png" style="height: 300px; width: 600px;">
 
 
 

@@ -3,6 +3,7 @@ $(info $(SHELL))
 PY = python3
 VENV = venv
 BIN=$(VENV)/BIN
+YEAR?=2022
 
 #Check for Windows installation
 ifeq ($(OS), Windows_NT)
@@ -11,7 +12,7 @@ ifeq ($(OS), Windows_NT)
 endif
 
 run:
-	$(PY) run.py $(ARGS)
+	$(PY) run.py -y $(YEAR)
 
 install: requirements.txt
 	pip install -r requirements.txt

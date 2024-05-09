@@ -16,7 +16,7 @@ def main():
     
     #parse runtime arguments
     parser = ArgumentParser()
-    parser.add_argument("year")
+    parser.add_argument('-y', dest='year')
     args = parser.parse_args()
     year = args.year
 

@@ -56,27 +56,18 @@ class BoxOfficeETL():
         """
         #get files currently in data_files bucket and process
         files_to_transform = self.bucket_conn.list_files_in_prefix('data_files/')
-        error_files = []
         full_df = pd.DataFrame()
         for csv_file in files_to_transform[1:]:
+            logger.info(f"Processing file {csv_file} for transform: " + time.ctime())
             try:
                 movie_df = self.bucket_conn.read_csv_to_df(csv_file)
                 movie_df = movie_df[movie_df.index < 16]
                 movie_df = movie_df[movie_df['Response'] == True]
-                movie_df = movie_df.drop(['LW', '%± LW', 
-                    'Change', 'Title', 'Rated', 'Released', 'Director', 'Writer',
-                    'Actors', 'Plot', 'Language', 'Country', 'Awards', 
-                    'Metascore', 'imdbRating', 'imdbVotes', 'Type', 'DVD',
-                    'BoxOffice', 'Production', 'Website', 'Response', 'Error'], axis=1)
+                movie_df = movie_df[['Rank', 'Release', 'Gross', 'Theaters',
+                    'Average', 'Total Gross', 'Weeks', 'Distributor', 'Year', 'Runtime', 
+                    'Genre', 'Poster', 'Ratings', 'imdbID', 'Reference']]
                 movie_df['Year'] = movie_df['Year'].astype('float').astype('Int64')
                 movie_df['Ratings'] = movie_df['Ratings'].str.strip('[]')
-                #Extract ratings into individual columns
-                for index, row in movie_df.iterrows():
-                    ratings = str(row['Ratings']).replace('},', '}*').split('*')
-                    movie_df.loc[index, 'imdb_score'] = eval(ratings[0])['Value'].split('/')[0]
-                    movie_df.loc[index, 'rt_score'] = eval(ratings[1])['Value'].split('/')[0].strip("%")
-                    movie_df.loc[index, 'meta_score'] = eval(ratings[2])['Value'].split('/')[0]
-                movie_df.drop(['Ratings'], axis=1, inplace=True)
                 #Convert np int64 to python object
                 movie_df['Rank'] = movie_df['Rank'].astype('object')
                 movie_df['Weeks'] = movie_df['Weeks'].astype('object')
@@ -86,11 +77,22 @@ class BoxOfficeETL():
                 movie_df['Average'] = movie_df['Average'].str.replace('$', '').str.replace(',', '')
                 movie_df['Total Gross'] = movie_df['Total Gross'].str.replace('$', '').str.replace(',', '')
                 movie_df['Theaters'] = movie_df['Theaters'].str.replace(',', '')
+                #Extract ratings into individual columns
+                for index, row in movie_df.iterrows():
+                    ratings = str(row['Ratings']).replace('},', '}*').split('*')
+                    if len(ratings) == 3:
+                        movie_df.loc[index, 'imdb_score'] = float(eval(ratings[0])['Value'].split('/')[0])
+                        movie_df.loc[index, 'rt_score'] = float(eval(ratings[1])['Value'].split('/')[0].strip("%"))
+                        movie_df.loc[index, 'meta_score'] = float(eval(ratings[2])['Value'].split('/')[0])
+                movie_df['imdb_score'] = movie_df['imdb_score'].fillna(value=0)
+                movie_df['rt_score'] = movie_df['rt_score'].fillna(value=0)
+                movie_df['meta_score'] = movie_df['meta_score'].fillna(value=0)
+                movie_df['Runtime'] = movie_df['Runtime'].fillna(value='0 min')
+                movie_df.drop(['Ratings'], axis=1, inplace=True)
                 movie_df.head()
                 full_df = pd.concat([full_df, movie_df], ignore_index=True)
             except:
                 logger.error(f"Unknown Error processing {csv_file} for load. " + time.ctime())
-                error_files.append(csv_file)
         #write files to archive folder
         self.bucket_conn.move_files_to_archive(files_to_transform)
         #return full_df for use in load method
@@ -105,23 +107,27 @@ class BoxOfficeETL():
         :params df: dataframe of movie data to be added to storage
         """
         if df.shape[0] == 0:
-            logger.info(f"Number of records loading: {df.shape[0]}")
+            logger.info(f"No records to load.")
         else:
-            db_conn = DatabaseConnection()
-            db_conn._session.rollback()
-            for index, row in df.iterrows():
-                #Check for distributor and add if new
-                dist_id = db_conn.get_distributor_id_by_name(row['Distributor'])
-                if dist_id == 0:
-                    dist_id = db_conn.add_distributor(row['Distributor'])
-                #Check for movie and add if new
-                movie_id = db_conn.get_movie_id_by_name(row['Release'])
-                if movie_id == 0:
-                    movie_id = db_conn.add_movie(row, dist_id)
-                #Add box office info for the week and movie
-                box_office_id = db_conn.add_box_office_entry(row, movie_id)
-            db_conn.close()
-            logger.info(f"Completed write to database")
+            logger.info(f"Number of records loading: {df.shape[0]}")
+            try:
+                db_conn = DatabaseConnection()
+                db_conn._session.rollback()
+                for index, row in df.iterrows():
+                    #Check for distributor and add if new
+                    dist_id = db_conn.get_distributor_id_by_name(row['Distributor'])
+                    if dist_id == 0:
+                        dist_id = db_conn.add_distributor(row['Distributor'])
+                    #Check for movie and add if new
+                    movie_id = db_conn.get_movie_id_by_name(row['Release'])
+                    if movie_id == 0:
+                        movie_id = db_conn.add_movie(row, dist_id)
+                    #Add box office info for the week and movie
+                    db_conn.add_box_office_entry(row, movie_id)
+                db_conn.close()
+                logger.info(f"Completed write to database")
+            except:
+                logger.error(f"Unknown error during database load process.")
 
 
     def run(self, year: int) -> None:

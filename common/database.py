@@ -19,7 +19,7 @@ class DatabaseConnection:
     """ Class to manage database transactions"""
     def __init__(self):
         self._engine = create_engine(
-            f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_ADDRESS}/{DB_NAME}b",
+            f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_ADDRESS}/{DB_NAME}",
             isolation_level = "REPEATABLE READ"
         )
         self._session = Session(self._engine)
@@ -107,7 +107,6 @@ class DatabaseConnection:
         """
         stmt = select(Movie).where(Movie.title == title)
         result = self._session.execute(stmt).fetchone()
-        print(f"mov-by-nm result = {result}")
         return 0 if not result else result[0].movie_id
 
 
@@ -119,7 +118,6 @@ class DatabaseConnection:
         """
         stmt = select(Distributor).where(Distributor.distributor_name == name)
         result = self._session.execute(stmt).fetchone()
-        print(f"dist-by-nm result = {result}")
         return 0 if not result else result[0].distributor_id
 
 

@@ -88,6 +88,7 @@ class s3BucketConnector():
             copy_source = {'Bucket': self._bucket_name, 'Key': file}
             filename = file.split("/")[1]
             self._client.copy(copy_source, self._bucket_name, f'archive/{filename}')
+            response = self._client.delete_object(Bucket=self._bucket_name, Key=file)
         return True
 
 
